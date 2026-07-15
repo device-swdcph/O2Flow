@@ -23,9 +23,10 @@
 
         .btn-save { background-color: #0f172a; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 16px; transition: 0.2s; }
         .btn-save:hover { background-color: #334155; }
-        .legend { margin-top: 20px; display: flex; gap: 20px; background: white; padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .legend { margin-top: 20px; display: flex; gap: 15px; background: white; padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); flex-wrap: wrap; justify-content: center; }
         .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #334155; }
-        .pipe-sample { width: 40px; height: 8px; border-radius: 4px; }
+        .pipe-sample { width: 30px; height: 8px; border-radius: 4px; }
+        .box-sample { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #64748b; }
     </style>
 </head>
 <body>
@@ -33,8 +34,8 @@
     <div class="header">
         <div style="text-align: left;">
             <h1 style="margin: 0; color: #0f172a;">Medical Oxygen Flow Simulator</h1>
-            <p style="margin: 0; color: #475569;">ระบบจำลองโครงข่ายออกซิเจน (Click-to-Toggle Interface)</p>
-            <div class="subtitle">👉 คลิกที่ตัวกล่องกราฟิก (Source, Valve, Main) เพื่อสลับสถานะ เปิด/ปิด ได้ทันที</div>
+            <p style="margin: 0; color: #475569;">ระบบจำลองโครงข่ายออกซิเจน (Multi-Color Category Interface)</p>
+            <div class="subtitle">👉 คลิกที่ตัวกล่องกราฟิกเพื่อสลับสถานะ เปิด/ปิด (สีของกล่องจะแยกตามประเภทอุปกรณ์ชัดเจน)</div>
         </div>
         <button class="btn-save" onclick="saveImage()">📸 บันทึกเป็นรูปภาพ</button>
     </div>
@@ -42,11 +43,16 @@
     <div id="mynetwork"></div>
 
     <div class="legend">
-        <div class="legend-item"><div class="pipe-sample" style="background:#3b82f6;"></div> ท่อหลัก (มีก๊าซ)</div>
-        <div class="legend-item"><div class="pipe-sample" style="background:#cbd5e1; height:4px;"></div> ท่อที่ไม่มีก๊าซ</div>
-        <div class="legend-item"><div class="pipe-sample" style="background:#f97316; border: 1px dashed #ea580c;"></div> ท่อสำรอง (กำลังจ่ายทดแทน)</div>
-        <div class="legend-item"><div style="width:14px; height:14px; border-radius:4px; background:#e2e8f0; border:2px solid #64748b;"></div> เปิดปกติ</div>
-        <div class="legend-item"><div style="width:14px; height:14px; border-radius:4px; background:#ef4444; border:2px solid #991b1b;"></div> ถูกสั่งปิด / ก๊าซไปไม่ถึง</div>
+        <div class="legend-item"><div class="box-sample" style="background:#dbeafe; border-color:#3b82f6;"></div> แหล่งจ่ายหลัก (Source)</div>
+        <div class="legend-item"><div class="box-sample" style="background:#fef08a; border-color:#eab308;"></div> วาล์วควบคุม (Valve)</div>
+        <div class="legend-item"><div class="box-sample" style="background:#ccfbf1; border-color:#14b8a6;"></div> จุดแยกท่อประธาน (Main Flow)</div>
+        <div class="legend-item"><div class="box-sample" style="background:#d1fae5; border-color:#10b981;"></div> อาคารปลายทาง (Destination)</div>
+        <div class="legend-item"><div class="box-sample" style="background:#f1f5f9; border-color:#94a3b8;"></div> ระบบสำรองสแตนบาย</div>
+        <div class="legend-item"><div class="box-sample" style="background:#ffedd5; border-color:#f97316;"></div> ระบบสำรองทำงาน / ตึกใช้สำรอง</div>
+        <div class="legend-item"><div class="box-sample" style="background:#fee2e2; border-color:#ef4444;"></div> จุดที่ถูกสั่งปิด / ระบบล่ม</div>
+        <div class="legend-item">|</div>
+        <div class="legend-item"><div class="pipe-sample" style="background:#3b82f6;"></div> ท่อหลักมีก๊าซ</div>
+        <div class="legend-item"><div class="pipe-sample" style="background:#f97316; border: 1px dashed #ea580c;"></div> ท่อสำรองจ่ายก๊าซ</div>
     </div>
 
     <script type="text/javascript">
@@ -163,9 +169,7 @@
                 let hasGas = nodesWithPrimaryGas.has(n.id) || displayStatus.includes('สำรอง') || displayStatus.includes('กำลังจ่าย') || (n.type === 'source' && n.status !== 'ปิด');
                 let labelText = ``;
 
-                // 🌟 ปรับปรุงการจัด Text ตรงนี้เพื่อซ่อนสถานะของ Backup
                 if (n.type === 'backup') {
-                    // ถังสำรองจะแสดงผลแค่ชื่ออุปกรณ์เพียวๆ ไม่แสดงสถานะ [ ... ] ให้งงอีกต่อไป
                     labelText = `🛢️ ${n.label}`; 
                 } else if (n.type === 'destination') {
                     labelText = `🏢 ${n.label}\n[ ${displayStatus} ]`;
@@ -208,32 +212,51 @@
             edgesDataset.update(visEdges);
         }
 
+        // 🧠 ฟังก์ชันจัดการสีแบบแยกหมวดหมู่อุปกรณ์ (4 สีหลักพาสเทล)
         function getNodeStyle(type, physicalStatus, tempStatus, hasGas) {
+            // เงื่อนไขฉุกเฉิน 1: ถูกจงใจกดสั่ง "ปิด" เอง (เปลี่ยนเป็นสีแดงอ่อนทันทียกเว้นถังสำรอง)
             if (physicalStatus === 'ปิด' && type !== 'backup') {
                 return { bg: '#fee2e2', font: '#991b1b', border: '#ef4444' };
             }
-            if (type === 'backup') {
-                if (tempStatus.includes('กำลังจ่าย')) {
-                    return { bg: '#ffedd5', font: '#ea580c', border: '#f97316' }; 
-                }
-                return { bg: '#f1f5f9', font: '#475569', border: '#94a3b8' }; 
-            }
-            if (!hasGas) {
+            
+            // เงื่อนไขฉุกเฉิน 2: ระบบล่ม/ก๊าซหลักส่งไปไม่ถึง (เปลี่ยนเป็นสีแดงเข้มแจ้งเตือน)
+            if (!hasGas && type !== 'backup') {
                 return { bg: '#ef4444', font: '#ffffff', border: '#7f1d1d' };
             }
-            if (tempStatus.includes('สำรอง')) {
+
+            // เงื่อนไขฉุกเฉิน 3: ตึกปลายทางกำลังดึงพลังงานจากระบบสำรองมาใช้ (เปลี่ยนเป็นสีส้ม)
+            if (tempStatus.includes('สำรอง') && type === 'destination') {
                 return { bg: '#ffedd5', font: '#ea580c', border: '#f97316' };
             }
-            return type === 'source' 
-                ? { bg: '#dbeafe', font: '#1e40af', border: '#3b82f6' } 
-                : { bg: '#d1fae5', font: '#065f46', border: '#10b981' };
+
+            // เงื่อนไขกรณีเป็นระบบสำรอง (Backup Tank)
+            if (type === 'backup') {
+                if (tempStatus.includes('กำลังจ่าย')) {
+                    return { bg: '#ffedd5', font: '#ea580c', border: '#f97316' }; // ส้มเมื่อทำงาน
+                }
+                return { bg: '#f1f5f9', font: '#475569', border: '#94a3b8' }; // เทาเมื่อสแตนบาย
+            }
+
+            // 🌟 เงื่อนไขสถานะปกติ: แยกสีตาม Type เพื่อความชัดเจนสูงสุด
+            switch(type) {
+                case 'source': 
+                    return { bg: '#dbeafe', font: '#1e40af', border: '#3b82f6' }; // 🔵 สีฟ้าแหล่งจ่าย
+                case 'valve': 
+                    return { bg: '#fef08a', font: '#854d0e', border: '#eab308' }; // 🟡 สีเหลืองวาล์ว
+                case 'main_flow': 
+                    return { bg: '#ccfbf1', font: '#115e59', border: '#14b8a6' }; // 🟢 สีเขียวมิ้นต์จุดแยกหลัก
+                case 'destination': 
+                    return { bg: '#d1fae5', font: '#065f46', border: '#10b981' }; // 🏢 สีเขียวเข้มตึกปลายทาง
+                default: 
+                    return { bg: '#ffffff', font: '#000000', border: '#64748b' };
+            }
         }
 
         function saveImage() {
             const canvas = document.querySelector('#mynetwork canvas');
             if (canvas) {
                 const link = document.createElement('a');
-                link.download = `O2-Flow-Diagram-${new Date().toLocaleDateString()}.png`;
+                link.download = `O2-MultiColor-Schematic-${new Date().toLocaleDateString()}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
             }
