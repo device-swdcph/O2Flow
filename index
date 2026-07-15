@@ -65,7 +65,7 @@
 
     <script type="text/javascript">
         // นำ URL ของ Web App ที่ได้จาก Google Apps Script มาใส่ที่นี่
-        const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzd52XAP_sZVxGrdU8iipkFyZIcsJgDOysLSfZ3e-s2bZPxoqEOkbL9E-rVLwW3Z7y1/exec';
 
         // ฟังก์ชันกำหนดสีของโหนดตาม Type และ Status
         function getNodeColor(type, status) {
