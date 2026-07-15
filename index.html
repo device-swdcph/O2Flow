@@ -3,28 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oxygen Flow Simulator</title>
+    <title>Oxygen Flow Interactive Simulator (Dual Main Logic)</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
-        body { font-family: 'Prompt', sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .header { text-align: center; width: 100%; max-width: 1280px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .subtitle { color: #059669; font-weight: 600; margin-top: 5px; font-size: 14px; background: #d1fae5; padding: 5px 10px; border-radius: 5px; display: inline-block; }
-        #mynetwork { width: 1280px; height: 720px; background-color: #ffffff; border: 4px solid #334155; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); cursor: default; }
-        .btn-save { background-color: #0f172a; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 16px; transition: 0.3s; }
+        body { 
+            font-family: 'Prompt', sans-serif; 
+            background-color: #f8fafc; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+        }
+        .header { 
+            text-align: center; 
+            width: 100%; 
+            max-width: 1280px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 10px; 
+        }
+        .subtitle { 
+            color: #1e3a8a; 
+            font-weight: 600; 
+            margin-top: 5px; 
+            font-size: 14px; 
+            background: #dbeafe; 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            display: inline-block; 
+        }
+        #mynetwork { 
+            width: 1280px; 
+            height: 720px; 
+            background-color: #ffffff; 
+            border: 4px solid #1e293b; 
+            border-radius: 16px; 
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); 
+        }
+        .btn-save { 
+            background-color: #0f172a; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-family: 'Prompt', sans-serif; 
+            font-weight: 600; 
+            font-size: 16px; 
+            transition: 0.2s; 
+        }
         .btn-save:hover { background-color: #334155; }
-        .legend { margin-top: 20px; display: flex; gap: 20px; background: white; padding: 10px 20px; border-radius: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .legend { 
+            margin-top: 20px; 
+            display: flex; 
+            gap: 20px; 
+            background: white; 
+            padding: 12px 24px; 
+            border-radius: 30px; 
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); 
+        }
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 14px; 
+            color: #334155; 
+        }
         .pipe-sample { width: 40px; height: 8px; border-radius: 4px; }
+        /* ปรับฟอนต์สำหรับกล่องเครื่องมือ (Tooltip) ที่มีปุ่มกด */
+        .vis-tooltip { font-family: 'Prompt', sans-serif !important; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div style="text-align: left;">
-            <h1 style="margin: 0; color: #1e293b;">O2 Flow Simulator</h1>
-            <p style="margin: 0; color: #64748b;">แผนผังจำลองวิศวกรรมระบบท่อออกซิเจน</p>
-            <div class="subtitle">👆 ทดลองคลิกที่ "วาล์ว" เพื่อจำลองการตัดต่อระบบก๊าซ</div>
+            <h1 style="margin: 0; color: #0f172a;">Medical Oxygen Flow Interactive Simulator</h1>
+            <p style="margin: 0; color: #475569;">ระบบจำลองโครงข่ายออกซิเจน (รองรับระบบหลัก 2 เส้นทาง)</p>
+            <div class="subtitle">เอาเมาส์ชี้ที่วาล์วแล้วคลิกปุ่มเพื่อจำลองการตัดต่อระบบก๊าซ</div>
         </div>
         <button class="btn-save" onclick="saveImage()">📸 บันทึกเป็นรูปภาพ</button>
     </div>
@@ -32,78 +91,76 @@
     <div id="mynetwork"></div>
 
     <div class="legend">
-        <div class="legend-item"><div class="pipe-sample" style="background:#2563eb;"></div> ท่อหลัก (กำลังจ่าย)</div>
-        <div class="legend-item"><div class="pipe-sample" style="background:#94a3b8; height:4px;"></div> ท่อที่ไม่มีก๊าซ</div>
-        <div class="legend-item"><div class="pipe-sample" style="background:#f59e0b; border: 1px dashed #d97706;"></div> ระบบสำรองทำงาน</div>
-        <div class="legend-item"><div style="width:15px; height:15px; border-radius:50%; background:#facc15; border:1px solid #000;"></div> วาล์ว (คลิกได้)</div>
-        <div class="legend-item"><div class="pipe-sample" style="background:#ef4444;"></div> จุดที่ก๊าซไม่ถึง / ล่ม</div>
+        <div class="legend-item"><div class="pipe-sample" style="background:#3b82f6;"></div> ท่อหลัก (มีก๊าซ)</div>
+        <div class="legend-item"><div class="pipe-sample" style="background:#cbd5e1; height:4px;"></div> ท่อที่ไม่มีแรงดันก๊าซ</div>
+        <div class="legend-item"><div class="pipe-sample" style="background:#f97316; border: 1px dashed #ea580c;"></div> ท่อสำรอง (กำลังจ่ายทดแทน)</div>
+        <div class="legend-item"><div style="width:14px; height:14px; border-radius:4px; background:#e2e8f0; border:2px solid #64748b;"></div> วาล์วปกติ</div>
+        <div class="legend-item"><div style="width:14px; height:14px; border-radius:4px; background:#ef4444; border:2px solid #991b1b;"></div> วาล์วที่ถูกสั่งปิด</div>
     </div>
 
     <script type="text/javascript">
-        // ⚠️ เปลี่ยน URL เป็นของคุณ
+        // ⚠️ นำ URL ของ Web App จาก Google Apps Script มาใส่ในเครื่องหมายคำพูดด้านล่าง
         const API_URL = 'https://script.google.com/macros/s/AKfycbzd52XAP_sZVxGrdU8iipkFyZIcsJgDOysLSfZ3e-s2bZPxoqEOkbL9E-rVLwW3Z7y1/exec';
         
         let network = null;
-        let nodesData = []; // เก็บข้อมูลโหนดต้นฉบับ
-        let linksData = []; // เก็บข้อมูลเส้นทางต้นฉบับ
+        let nodesData = []; 
+        let linksData = []; 
         let nodesDataset = new vis.DataSet();
         let edgesDataset = new vis.DataSet();
 
         async function initDiagram() {
             try {
-                // 1. โหลดข้อมูลจาก Google Sheets ครั้งแรก
                 const response = await fetch(API_URL);
                 const data = await response.json();
                 nodesData = data.nodes;
                 linksData = data.links;
 
-                // 2. ตั้งค่าเครือข่าย
                 const container = document.getElementById('mynetwork');
                 const options = {
-                    layout: { hierarchical: { direction: 'LR', sortMethod: 'directed', levelSeparation: 300, nodeSpacing: 150 } },
+                    layout: { 
+                        hierarchical: { 
+                            direction: 'LR', 
+                            sortMethod: 'directed', 
+                            levelSeparation: 260, 
+                            nodeSpacing: 140 
+                        } 
+                    },
                     physics: false,
-                    interaction: { hover: true, dragNodes: true }
+                    interaction: { hover: true, dragNodes: true, selectable: true }
                 };
                 network = new vis.Network(container, { nodes: nodesDataset, edges: edgesDataset }, options);
 
-                // 3. เริ่มคำนวณการไหลของก๊าซ
+                // เริ่มคำนวณการไหลครั้งแรกเมื่อโหลดข้อมูลเสร็จ
                 calculateFlow();
 
-                // 4. ดักจับเหตุการณ์การ "คลิก" ที่โหนด
-                network.on("click", function (params) {
-                    if (params.nodes.length > 0) {
-                        let clickedNodeId = params.nodes[0];
-                        let nodeIndex = nodesData.findIndex(n => n.id === clickedNodeId);
-                        
-                        // ถ้าสิ่งที่คลิกคือ "วาล์ว" ให้สลับสถานะ
-                        if (nodeIndex !== -1 && nodesData[nodeIndex].type === 'valve') {
-                            let currentStatus = nodesData[nodeIndex].status;
-                            nodesData[nodeIndex].status = (currentStatus === 'เปิด' || currentStatus === 'ปกติ') ? 'ปิด' : 'เปิด';
-                            
-                            // คำนวณระบบก๊าซใหม่ทั้งหมด
-                            calculateFlow();
-                        }
+                // ฟังก์ชันสำหรับรับคำสั่งจากปุ่มเปิด/ปิดใน Tooltip
+                window.toggleValve = function(nodeId) {
+                    let idx = nodesData.findIndex(n => n.id === nodeId);
+                    if (idx !== -1) {
+                        nodesData[idx].status = nodesData[idx].status === 'ปิด' ? 'เปิด' : 'ปิด';
+                        calculateFlow(); // เมื่อเปลี่ยนสถานะ ให้คำนวณโครงข่ายใหม่ทั้งหมด
                     }
-                });
+                };
 
             } catch (error) {
-                document.getElementById('mynetwork').innerHTML = '<div style="padding: 20px; color: red; text-align: center;">ไม่สามารถเชื่อมต่อฐานข้อมูลได้</div>';
+                console.error("Error fetching data:", error);
+                document.getElementById('mynetwork').innerHTML = '<div style="padding: 20px; color: red; font-size: 18px; text-align: center; margin-top: 50px;">ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบ URL ของ Google Apps Script</div>';
             }
         }
 
-        // 🧠 ฟังก์ชันสมองกล: คำนวณเส้นทางก๊าซและระบบสำรองอัตโนมัติ
+        // 🧠 Core Logic: คำนวณการไหลตามเงื่อนไข Dual-Main Redundancy
         function calculateFlow() {
-            let activeNodes = new Set(); // เก็บ ID ของจุดที่มีก๊าซไหลไปถึง
-            let activeEdges = new Set(); // เก็บ ID ของเส้นท่อที่มีก๊าซ
-            
-            // รีเซ็ตสถานะชั่วคราว
-            nodesData.forEach(n => { n.tempStatus = 'ไม่มีก๊าซ'; });
+            let nodesWithPrimaryGas = new Set(); // เก็บจุดที่ระบบหลักวิ่งไปถึง
+            let activeEdges = new Set();         // เก็บเส้นท่อที่มีก๊าซไหลผ่านจริง
 
-            // สเตป 1: ปล่อยก๊าซจากถังหลัก (Source) วิ่งไปตามท่อ Primary
+            // รีเซ็ตสถานะทุกจุดให้เป็น 'ไม่มีก๊าซ' ชั่วคราว (ยกเว้นวาล์วที่จะเก็บสถานะ เปิด/ปิด ของตัวเองไว้)
+            nodesData.forEach(n => { if(n.type !== 'valve') n.tempStatus = 'ไม่มีก๊าซ'; });
+
+            // ขั้นตอนที่ 1: ตรวจสอบการไหลของระบบหลัก (Primary System)
             let queue = [];
             nodesData.filter(n => n.type === 'source').forEach(n => {
                 n.tempStatus = 'ปกติ';
-                activeNodes.add(n.id);
+                nodesWithPrimaryGas.add(n.id);
                 queue.push(n.id);
             });
 
@@ -111,72 +168,74 @@
                 let currId = queue.shift();
                 let currNode = nodesData.find(n => n.id === currId);
 
-                // ถ้าวาล์วถูก "ปิด" ก๊าซจะหยุดตรงนี้ ไม่ไหลต่อ
+                // หากวาล์วตัวนี้ถูกกดเป็น "ปิด" ก๊าซหลักจะไหลผ่านไปไม่ได้ หยุดการสำรวจเส้นทางย่อยนี้
                 if (currNode.type === 'valve' && currNode.status === 'ปิด') continue;
 
-                // หาเส้นทางที่ออกจากจุดนี้ (เฉพาะท่อหลัก)
+                // ตามรอยเส้นทางท่อหลักที่ออกจากจุดนี้
                 let outgoingLinks = linksData.filter(l => l.from === currId && l.line_type === 'primary');
                 outgoingLinks.forEach(link => {
-                    activeEdges.add(link.from + '_' + link.to);
-                    if (!activeNodes.has(link.to)) {
-                        activeNodes.add(link.to);
+                    activeEdges.add(link.from + '_' + link.to); // เปิดใช้งานท่อเส้นนี้
+                    if (!nodesWithPrimaryGas.has(link.to)) {
+                        nodesWithPrimaryGas.add(link.to);
                         let targetNode = nodesData.find(n => n.id === link.to);
-                        if (targetNode.type !== 'valve') targetNode.tempStatus = 'ปกติ';
+                        if (targetNode && targetNode.type !== 'valve') targetNode.tempStatus = 'ปกติ';
                         queue.push(link.to);
                     }
                 });
             }
 
-            // สเตป 2: ตรวจสอบว่าระบบหลักล่มไหม ถ้าล่มให้เปิดระบบสำรอง (Backup)
+            // ขั้นตอนที่ 2: ตรวจสอบเงื่อนไขระบบสำรอง (Backup Logic)
             nodesData.filter(n => n.type === 'backup').forEach(backupNode => {
-                backupNode.tempStatus = 'Standby'; // ค่าเริ่มต้นของถังสำรอง
+                backupNode.tempStatus = 'Standby Ready'; // ค่าตั้งต้นคือเตรียมพร้อม
                 
                 let outgoingBackupLinks = linksData.filter(l => l.from === backupNode.id && l.line_type === 'backup');
-                let backupTriggered = false;
-
+                
                 outgoingBackupLinks.forEach(link => {
-                    // ถ้าเป้าหมาย (เช่น ตึกคลอด) ไม่มีก๊าซจากระบบหลักไปถึง
-                    if (!activeNodes.has(link.to)) {
-                        backupTriggered = true;
-                        activeEdges.add(link.from + '_' + link.to); // เปิดท่อสำรอง
-                        activeNodes.add(link.to);
+                    // 🚨 เงื่อนไข: ถ้าระบบหลักทั้งคู่ส่งไปไม่ถึงปลายทางเลย (ปลายทางไม่อยู่ในเซ็ต nodesWithPrimaryGas)
+                    if (!nodesWithPrimaryGas.has(link.to)) {
+                        backupNode.tempStatus = '⚡ กำลังจ่ายก๊าซสำรอง';
+                        activeEdges.add(link.from + '_' + link.to); // เปิดใช้งานท่อสำรอง
                         
                         let targetNode = nodesData.find(n => n.id === link.to);
-                        if (targetNode) targetNode.tempStatus = 'ใช้ระบบสำรอง';
+                        // เปลี่ยนสถานะปลายทางเป็นใช้ระบบสำรอง (ครอบคลุมทุกขนาดอาคาร)
+                        if (targetNode) targetNode.tempStatus = '⚠️ ใช้ระบบก๊าซสำรอง'; 
                     }
                 });
-
-                if (backupTriggered) {
-                    backupNode.tempStatus = 'กำลังจ่ายก๊าซ'; // เปลี่ยนสถานะถังสำรอง
-                    activeNodes.add(backupNode.id);
-                }
             });
 
-            // อัปเดตกราฟิกขึ้นหน้าจอ
-            renderUpdate(activeNodes, activeEdges);
+            // อัปเดตข้อมูลขึ้นหน้าจอ
+            renderUpdate(nodesWithPrimaryGas, activeEdges);
         }
 
-        // ฟังก์ชันวาดกราฟิก (สีท่อ, สีโหนด) ตามข้อมูลที่คำนวณได้
-        function renderUpdate(activeNodes, activeEdges) {
+        // ฟังก์ชันกำหนดการแสดงผลกราฟิก
+        function renderUpdate(nodesWithPrimaryGas, activeEdges) {
             let visNodes = nodesData.map(n => {
                 let displayStatus = n.tempStatus;
-                let hasFlow = activeNodes.has(n.id);
                 
-                // ถือสิทธิ์สถานะของวาล์วที่ผู้ใช้คลิก
-                if (n.type === 'valve') displayStatus = n.status;
+                // เช็คว่าจุดนี้มีก๊าซเข้าหรือไม่ (จากระบบหลัก หรือ ระบบสำรองทำงานอยู่)
+                let hasGas = nodesWithPrimaryGas.has(n.id) || displayStatus.includes('สำรอง') || displayStatus.includes('กำลังจ่าย');
+                let labelText = ``;
 
-                let style = getNodeStyle(n.type, displayStatus, hasFlow);
+                if (n.type === 'valve') {
+                    displayStatus = n.status || 'เปิด';
+                    labelText = `📌 ${n.label}\nสถานะ: [ ${displayStatus} ]\n\n(ชี้เพื่อสลับสถานะ)`;
+                } else {
+                    labelText = `🏢 ${n.label}\n[ ${displayStatus} ]`;
+                }
+
+                let style = getNodeStyle(n.type, displayStatus, hasGas);
                 
                 return {
                     id: n.id,
-                    label: ` ${n.label} \n[${displayStatus}] `,
+                    label: labelText,
                     level: n.level,
-                    shape: n.type === 'valve' ? 'dot' : 'box',
-                    size: n.type === 'valve' ? 25 : undefined,
-                    font: { face: 'Prompt', color: style.font, size: 16 },
+                    shape: 'box',
+                    margin: 12,
+                    // ฝังปุ่ม HTML ลงไปใน Tooltip (แสดงผลเมื่อเอาเมาส์ชี้)
+                    title: n.type === 'valve' ? `<button onclick="window.toggleValve('${n.id}')" style="font-family:'Prompt'; padding:8px 16px; cursor:pointer; font-weight:bold; background:#1e293b; color:white; border:none; border-radius:6px; margin: 5px;">คลิกสลับสถานะ วาล์ว</button>` : undefined,
+                    font: { face: 'Prompt', color: style.font, size: 15, multi: true },
                     color: { background: style.bg, border: style.border },
-                    borderWidth: (n.type === 'valve' && displayStatus === 'ปิด') ? 4 : 2,
-                    shadow: n.type === 'valve' // เพิ่มเงาให้วาล์วดูเหมือนปุ่มกดได้
+                    borderWidth: 2
                 };
             });
 
@@ -184,17 +243,17 @@
                 let isActive = activeEdges.has(l.from + '_' + l.to);
                 let isBackup = l.line_type === 'backup';
                 
-                // กำหนดสีและความหนาของท่อ (ท่อไม่มีก๊าซจะลีบและเป็นสีเทา)
-                let edgeColor = isActive ? (isBackup ? '#f59e0b' : '#3b82f6') : '#cbd5e1';
+                // กำหนดสีและขนาดท่อ (น้ำเงิน=หลัก, ส้ม=สำรอง, เทาลีบ=ไม่มีก๊าซ)
+                let edgeColor = isActive ? (isBackup ? '#f97316' : '#3b82f6') : '#cbd5e1';
                 
                 return {
                     id: l.from + '_' + l.to,
                     from: l.from, to: l.to,
                     width: isActive ? 12 : 4,
-                    color: { color: edgeColor, opacity: isActive ? 1 : 0.4 },
+                    color: { color: edgeColor, opacity: isActive ? 1 : 0.3 },
                     arrows: 'to',
                     dashes: isBackup,
-                    smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.5 }
+                    smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.6 }
                 };
             });
 
@@ -202,34 +261,37 @@
             edgesDataset.update(visEdges);
         }
 
-        // จัดการเรื่องสีตามเงื่อนไข
-        function getNodeStyle(type, status, hasFlow) {
+        // ฟังก์ชันจัดการสีโหนดตามสถานะความปลอดภัย
+        function getNodeStyle(type, status, hasGas) {
             if (type === 'valve') {
                 return status === 'ปิด' 
-                    ? { bg: '#ef4444', font: '#ffffff', border: '#7f1d1d' } 
-                    : { bg: '#facc15', font: '#000000', border: '#854d0e' };
+                    ? { bg: '#fee2e2', font: '#991b1b', border: '#ef4444' } 
+                    : { bg: '#fef08a', font: '#854d0e', border: '#eab308' };
             }
-            if (!hasFlow && type !== 'source' && type !== 'backup') {
-                return { bg: '#ef4444', font: '#ffffff', border: '#991b1b' }; // แดง = ล่ม/ก๊าซไม่ถึง
+            if (!hasGas && type !== 'source' && type !== 'backup') {
+                return { bg: '#ef4444', font: '#ffffff', border: '#7f1d1d' }; // แดง (ล่ม)
             }
-            if (status === 'ใช้ระบบสำรอง' || status === 'กำลังจ่ายก๊าซ') {
-                return { bg: '#f97316', font: '#ffffff', border: '#9a3412' }; // ส้ม = สำรอง
+            if (status.includes('สำรอง') || status.includes('กำลังจ่าย')) {
+                return { bg: '#ffedd5', font: '#ea580c', border: '#f97316' }; // ส้ม (สำรอง)
             }
-            if (type === 'backup' && status === 'Standby') {
-                return { bg: '#94a3b8', font: '#ffffff', border: '#475569' }; // เทา = ถังสำรองที่รอใช้งาน
+            if (type === 'backup' && status === 'Standby Ready') {
+                return { bg: '#f1f5f9', font: '#475569', border: '#94a3b8' }; // เทา (เตรียมพร้อม)
             }
             return type === 'source' 
-                ? { bg: '#2563eb', font: '#ffffff', border: '#1e3a8a' } // ฟ้า = ต้นทาง
-                : { bg: '#22c55e', font: '#ffffff', border: '#14532d' }; // เขียว = ปลายทางทำงานปกติ
+                ? { bg: '#dbeafe', font: '#1e40af', border: '#3b82f6' } // ฟ้า (ต้นทางหลัก)
+                : { bg: '#d1fae5', font: '#065f46', border: '#10b981' }; // เขียว (ทำงานปกติ)
         }
 
+        // ฟังก์ชันบันทึกภาพหน้าจอ
         function saveImage() {
             const canvas = document.querySelector('#mynetwork canvas');
             if (canvas) {
                 const link = document.createElement('a');
-                link.download = `O2-Simulator-${new Date().toLocaleDateString()}.png`;
+                link.download = `O2-Flow-Architecture-${new Date().toLocaleDateString()}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
+            } else {
+                alert("เกิดข้อผิดพลาด ไม่พบแผนผังสำหรับบันทึกภาพ");
             }
         }
 
