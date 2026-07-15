@@ -3,92 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oxygen Flow Interactive Simulator (Dual Main Logic)</title>
+    <title>Oxygen Flow Interactive Simulator</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
-        body { 
-            font-family: 'Prompt', sans-serif; 
-            background-color: #f8fafc; 
-            margin: 0; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-        }
-        .header { 
-            text-align: center; 
-            width: 100%; 
-            max-width: 1280px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 10px; 
-        }
-        .subtitle { 
-            color: #1e3a8a; 
-            font-weight: 600; 
-            margin-top: 5px; 
-            font-size: 14px; 
-            background: #dbeafe; 
-            padding: 6px 12px; 
-            border-radius: 20px; 
-            display: inline-block; 
-        }
-        #mynetwork { 
+        body { font-family: 'Prompt', sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .header { text-align: center; width: 100%; max-width: 1280px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .subtitle { color: #1e3a8a; font-weight: 600; margin-top: 5px; font-size: 14px; background: #dbeafe; padding: 6px 12px; border-radius: 20px; display: inline-block; }
+        
+        /* 💡 การสร้าง Wrapper เพื่อให้ปุ่มลอยทับแผนผังได้ */
+        .network-wrapper {
+            position: relative;
             width: 1280px; 
-            height: 720px; 
+            height: 720px;
             background-color: #ffffff; 
             border: 4px solid #1e293b; 
             border-radius: 16px; 
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); 
         }
-        .btn-save { 
-            background-color: #0f172a; 
-            color: white; 
-            padding: 12px 24px; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-family: 'Prompt', sans-serif; 
-            font-weight: 600; 
-            font-size: 16px; 
-            transition: 0.2s; 
+        #mynetwork {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
         }
+
+        /* 💡 ชั้น Layer สำหรับใส่ปุ่ม HTML */
+        #valve-controls-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; /* ให้คลิกทะลุไปโดนแผนผังได้ */
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        /* 💡 ดีไซน์ชุดปุ่มกด (เปิด/ปิด) */
+        .valve-btn-group {
+            position: absolute;
+            transform: translate(-50%, 20px); /* จัดให้อยู่กึ่งกลางใต้กล่องวาล์ว */
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            pointer-events: auto; /* ให้ปุ่มกดรับคำสั่งคลิกได้ */
+            z-index: 10;
+        }
+        .v-btn {
+            font-family: 'Prompt', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid #cbd5e1;
+            background: #f1f5f9;
+            color: #475569;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            transition: 0.2s;
+        }
+        .v-btn:hover { background: #e2e8f0; }
+        /* สไตล์เมื่อปุ่มถูกเลือก (Active) */
+        .v-btn.btn-on.active { background: #22c55e; color: white; border-color: #16a34a; }
+        .v-btn.btn-off.active { background: #ef4444; color: white; border-color: #dc2626; }
+
+        .btn-save { background-color: #0f172a; color: white; padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 600; font-size: 16px; transition: 0.2s; }
         .btn-save:hover { background-color: #334155; }
-        .legend { 
-            margin-top: 20px; 
-            display: flex; 
-            gap: 20px; 
-            background: white; 
-            padding: 12px 24px; 
-            border-radius: 30px; 
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); 
-        }
-        .legend-item { 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-            font-size: 14px; 
-            color: #334155; 
-        }
+        .legend { margin-top: 20px; display: flex; gap: 20px; background: white; padding: 12px 24px; border-radius: 30px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #334155; }
         .pipe-sample { width: 40px; height: 8px; border-radius: 4px; }
-        /* ปรับฟอนต์สำหรับกล่องเครื่องมือ (Tooltip) ที่มีปุ่มกด */
-        .vis-tooltip { font-family: 'Prompt', sans-serif !important; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div style="text-align: left;">
-            <h1 style="margin: 0; color: #0f172a;">Medical Oxygen Flow Interactive Simulator</h1>
+            <h1 style="margin: 0; color: #0f172a;">Medical Oxygen Flow Simulator</h1>
             <p style="margin: 0; color: #475569;">ระบบจำลองโครงข่ายออกซิเจน (รองรับระบบหลัก 2 เส้นทาง)</p>
-            <div class="subtitle">เอาเมาส์ชี้ที่วาล์วแล้วคลิกปุ่มเพื่อจำลองการตัดต่อระบบก๊าซ</div>
+            <div class="subtitle">👉 กดปุ่ม [เปิด] หรือ [ปิด] ด้านล่างวาล์วแต่ละตัว เพื่อดูการตอบสนองของระบบสำรอง</div>
         </div>
         <button class="btn-save" onclick="saveImage()">📸 บันทึกเป็นรูปภาพ</button>
     </div>
 
-    <div id="mynetwork"></div>
+    <div class="network-wrapper">
+        <div id="mynetwork"></div>
+        <div id="valve-controls-layer"></div>
+    </div>
 
     <div class="legend">
         <div class="legend-item"><div class="pipe-sample" style="background:#3b82f6;"></div> ท่อหลัก (มีก๊าซ)</div>
@@ -99,7 +99,7 @@
     </div>
 
     <script type="text/javascript">
-        // ⚠️ นำ URL ของ Web App จาก Google Apps Script มาใส่ในเครื่องหมายคำพูดด้านล่าง
+        // ⚠️ อย่าลืมแก้ URL ตรงนี้นะครับ
         const API_URL = 'https://script.google.com/macros/s/AKfycbzd52XAP_sZVxGrdU8iipkFyZIcsJgDOysLSfZ3e-s2bZPxoqEOkbL9E-rVLwW3Z7y1/exec';
         
         let network = null;
@@ -107,6 +107,8 @@
         let linksData = []; 
         let nodesDataset = new vis.DataSet();
         let edgesDataset = new vis.DataSet();
+        
+        let valveButtonsMap = {}; // ตัวแปรเก็บ DOM ของปุ่ม
 
         async function initDiagram() {
             try {
@@ -117,46 +119,107 @@
 
                 const container = document.getElementById('mynetwork');
                 const options = {
-                    layout: { 
-                        hierarchical: { 
-                            direction: 'LR', 
-                            sortMethod: 'directed', 
-                            levelSeparation: 260, 
-                            nodeSpacing: 140 
-                        } 
-                    },
+                    layout: { hierarchical: { direction: 'LR', sortMethod: 'directed', levelSeparation: 260, nodeSpacing: 160 } },
                     physics: false,
                     interaction: { hover: true, dragNodes: true, selectable: true }
                 };
                 network = new vis.Network(container, { nodes: nodesDataset, edges: edgesDataset }, options);
 
-                // เริ่มคำนวณการไหลครั้งแรกเมื่อโหลดข้อมูลเสร็จ
+                // สร้างชุดปุ่มกดแบบ HTML ขึ้นมาครอบวาล์วทุกตัว
+                buildValveButtonsHTML();
+
+                // สั่งคำนวณการไหล
                 calculateFlow();
 
-                // ฟังก์ชันสำหรับรับคำสั่งจากปุ่มเปิด/ปิดใน Tooltip
-                window.toggleValve = function(nodeId) {
-                    let idx = nodesData.findIndex(n => n.id === nodeId);
-                    if (idx !== -1) {
-                        nodesData[idx].status = nodesData[idx].status === 'ปิด' ? 'เปิด' : 'ปิด';
-                        calculateFlow(); // เมื่อเปลี่ยนสถานะ ให้คำนวณโครงข่ายใหม่ทั้งหมด
-                    }
-                };
+                // 🌟 เทคนิคการเกาะติด: เมื่อกราฟิกขยับ ให้ขยับพิกัดปุ่มตามอัตโนมัติ
+                network.on("afterDrawing", updateButtonPositions);
+                network.on("zoom", updateButtonPositions);
 
             } catch (error) {
-                console.error("Error fetching data:", error);
-                document.getElementById('mynetwork').innerHTML = '<div style="padding: 20px; color: red; font-size: 18px; text-align: center; margin-top: 50px;">ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบ URL ของ Google Apps Script</div>';
+                console.error("Error:", error);
+                document.getElementById('mynetwork').innerHTML = '<div style="padding:20px;color:red;text-align:center;">ไม่สามารถเชื่อมต่อฐานข้อมูลได้</div>';
             }
         }
 
+        // ฟังก์ชันสร้างชุดปุ่ม เปิด/ปิด บนหน้าจอ
+        function buildValveButtonsHTML() {
+            const layer = document.getElementById('valve-controls-layer');
+            layer.innerHTML = '';
+            valveButtonsMap = {};
+
+            nodesData.forEach(n => {
+                if (n.type === 'valve') {
+                    let div = document.createElement('div');
+                    div.className = 'valve-btn-group';
+                    
+                    // ปุ่ม "เปิด"
+                    let btnOn = document.createElement('button');
+                    btnOn.className = `v-btn btn-on ${n.status !== 'ปิด' ? 'active' : ''}`;
+                    btnOn.innerText = 'เปิด';
+                    btnOn.onclick = () => window.setValve(n.id, 'เปิด');
+                    
+                    // ปุ่ม "ปิด"
+                    let btnOff = document.createElement('button');
+                    btnOff.className = `v-btn btn-off ${n.status === 'ปิด' ? 'active' : ''}`;
+                    btnOff.innerText = 'ปิด';
+                    btnOff.onclick = () => window.setValve(n.id, 'ปิด');
+                    
+                    div.appendChild(btnOn);
+                    div.appendChild(btnOff);
+                    layer.appendChild(div);
+                    
+                    // เก็บอ้างอิงไว้เพื่ออัปเดตสีและตำแหน่ง
+                    valveButtonsMap[n.id] = { div: div, btnOn: btnOn, btnOff: btnOff };
+                }
+            });
+        }
+
+        // ฟังก์ชันอัปเดตตำแหน่งปุ่มให้ตรงกับกล่องกราฟิกบน Canvas
+        function updateButtonPositions() {
+            if (!network) return;
+            let positions = network.getPositions();
+            for (let id in valveButtonsMap) {
+                if (positions[id]) {
+                    // แปลงพิกัดกราฟิก เป็นพิกัดหน้าจอ (DOM)
+                    let domPos = network.canvasToDOM(positions[id]);
+                    let controls = valveButtonsMap[id];
+                    controls.div.style.left = domPos.x + 'px';
+                    controls.div.style.top = (domPos.y + 25) + 'px'; // +25 ดันปุ่มลงมาอยู่ขอบล่างของกล่อง
+                }
+            }
+        }
+
+        // ฟังก์ชันรับคำสั่งเมื่อผู้ใช้กดปุ่ม
+        window.setValve = function(nodeId, newStatus) {
+            let idx = nodesData.findIndex(n => n.id === nodeId);
+            if (idx !== -1) {
+                nodesData[idx].status = newStatus;
+                
+                // อัปเดตสีปุ่มให้ตรงกับสถานะ (สลับคลาส active)
+                let ctrls = valveButtonsMap[nodeId];
+                if (ctrls) {
+                    if (newStatus === 'เปิด') {
+                        ctrls.btnOn.classList.add('active');
+                        ctrls.btnOff.classList.remove('active');
+                    } else {
+                        ctrls.btnOn.classList.remove('active');
+                        ctrls.btnOff.classList.add('active');
+                    }
+                }
+                
+                // สั่งคำนวณโครงข่ายใหม่ทั้งหมด
+                calculateFlow();
+            }
+        };
+
         // 🧠 Core Logic: คำนวณการไหลตามเงื่อนไข Dual-Main Redundancy
         function calculateFlow() {
-            let nodesWithPrimaryGas = new Set(); // เก็บจุดที่ระบบหลักวิ่งไปถึง
-            let activeEdges = new Set();         // เก็บเส้นท่อที่มีก๊าซไหลผ่านจริง
+            let nodesWithPrimaryGas = new Set();
+            let activeEdges = new Set();
 
-            // รีเซ็ตสถานะทุกจุดให้เป็น 'ไม่มีก๊าซ' ชั่วคราว (ยกเว้นวาล์วที่จะเก็บสถานะ เปิด/ปิด ของตัวเองไว้)
             nodesData.forEach(n => { if(n.type !== 'valve') n.tempStatus = 'ไม่มีก๊าซ'; });
 
-            // ขั้นตอนที่ 1: ตรวจสอบการไหลของระบบหลัก (Primary System)
+            // Step 1: วิ่งเส้นทางระบบหลัก
             let queue = [];
             nodesData.filter(n => n.type === 'source').forEach(n => {
                 n.tempStatus = 'ปกติ';
@@ -168,13 +231,12 @@
                 let currId = queue.shift();
                 let currNode = nodesData.find(n => n.id === currId);
 
-                // หากวาล์วตัวนี้ถูกกดเป็น "ปิด" ก๊าซหลักจะไหลผ่านไปไม่ได้ หยุดการสำรวจเส้นทางย่อยนี้
+                // บล็อกเส้นทางหากวาล์วปิด
                 if (currNode.type === 'valve' && currNode.status === 'ปิด') continue;
 
-                // ตามรอยเส้นทางท่อหลักที่ออกจากจุดนี้
                 let outgoingLinks = linksData.filter(l => l.from === currId && l.line_type === 'primary');
                 outgoingLinks.forEach(link => {
-                    activeEdges.add(link.from + '_' + link.to); // เปิดใช้งานท่อเส้นนี้
+                    activeEdges.add(link.from + '_' + link.to);
                     if (!nodesWithPrimaryGas.has(link.to)) {
                         nodesWithPrimaryGas.add(link.to);
                         let targetNode = nodesData.find(n => n.id === link.to);
@@ -184,41 +246,38 @@
                 });
             }
 
-            // ขั้นตอนที่ 2: ตรวจสอบเงื่อนไขระบบสำรอง (Backup Logic)
+            // Step 2: ตรวจสอบระบบสำรอง
             nodesData.filter(n => n.type === 'backup').forEach(backupNode => {
-                backupNode.tempStatus = 'Standby Ready'; // ค่าตั้งต้นคือเตรียมพร้อม
+                backupNode.tempStatus = 'Standby Ready';
                 
                 let outgoingBackupLinks = linksData.filter(l => l.from === backupNode.id && l.line_type === 'backup');
                 
                 outgoingBackupLinks.forEach(link => {
-                    // 🚨 เงื่อนไข: ถ้าระบบหลักทั้งคู่ส่งไปไม่ถึงปลายทางเลย (ปลายทางไม่อยู่ในเซ็ต nodesWithPrimaryGas)
+                    // หากตึกปลายทาง ไม่ได้รับก๊าซจากระบบหลักเลย (ล่ม 100%)
                     if (!nodesWithPrimaryGas.has(link.to)) {
                         backupNode.tempStatus = '⚡ กำลังจ่ายก๊าซสำรอง';
-                        activeEdges.add(link.from + '_' + link.to); // เปิดใช้งานท่อสำรอง
+                        activeEdges.add(link.from + '_' + link.to);
                         
                         let targetNode = nodesData.find(n => n.id === link.to);
-                        // เปลี่ยนสถานะปลายทางเป็นใช้ระบบสำรอง (ครอบคลุมทุกขนาดอาคาร)
                         if (targetNode) targetNode.tempStatus = '⚠️ ใช้ระบบก๊าซสำรอง'; 
                     }
                 });
             });
 
-            // อัปเดตข้อมูลขึ้นหน้าจอ
             renderUpdate(nodesWithPrimaryGas, activeEdges);
         }
 
-        // ฟังก์ชันกำหนดการแสดงผลกราฟิก
+        // ฟังก์ชันวาดกราฟิกขึ้น Canvas
         function renderUpdate(nodesWithPrimaryGas, activeEdges) {
             let visNodes = nodesData.map(n => {
                 let displayStatus = n.tempStatus;
-                
-                // เช็คว่าจุดนี้มีก๊าซเข้าหรือไม่ (จากระบบหลัก หรือ ระบบสำรองทำงานอยู่)
                 let hasGas = nodesWithPrimaryGas.has(n.id) || displayStatus.includes('สำรอง') || displayStatus.includes('กำลังจ่าย');
                 let labelText = ``;
 
                 if (n.type === 'valve') {
                     displayStatus = n.status || 'เปิด';
-                    labelText = `📌 ${n.label}\nสถานะ: [ ${displayStatus} ]\n\n(ชี้เพื่อสลับสถานะ)`;
+                    // วางพื้นที่ว่างด้านล่างกล่องไว้เผื่อปุ่ม HTML ที่จะลอยทับ
+                    labelText = `📌 ${n.label}\n[ ${displayStatus} ]\n\n`; 
                 } else {
                     labelText = `🏢 ${n.label}\n[ ${displayStatus} ]`;
                 }
@@ -231,8 +290,6 @@
                     level: n.level,
                     shape: 'box',
                     margin: 12,
-                    // ฝังปุ่ม HTML ลงไปใน Tooltip (แสดงผลเมื่อเอาเมาส์ชี้)
-                    title: n.type === 'valve' ? `<button onclick="window.toggleValve('${n.id}')" style="font-family:'Prompt'; padding:8px 16px; cursor:pointer; font-weight:bold; background:#1e293b; color:white; border:none; border-radius:6px; margin: 5px;">คลิกสลับสถานะ วาล์ว</button>` : undefined,
                     font: { face: 'Prompt', color: style.font, size: 15, multi: true },
                     color: { background: style.bg, border: style.border },
                     borderWidth: 2
@@ -242,8 +299,6 @@
             let visEdges = linksData.map(l => {
                 let isActive = activeEdges.has(l.from + '_' + l.to);
                 let isBackup = l.line_type === 'backup';
-                
-                // กำหนดสีและขนาดท่อ (น้ำเงิน=หลัก, ส้ม=สำรอง, เทาลีบ=ไม่มีก๊าซ)
                 let edgeColor = isActive ? (isBackup ? '#f97316' : '#3b82f6') : '#cbd5e1';
                 
                 return {
@@ -261,7 +316,6 @@
             edgesDataset.update(visEdges);
         }
 
-        // ฟังก์ชันจัดการสีโหนดตามสถานะความปลอดภัย
         function getNodeStyle(type, status, hasGas) {
             if (type === 'valve') {
                 return status === 'ปิด' 
@@ -269,20 +323,20 @@
                     : { bg: '#fef08a', font: '#854d0e', border: '#eab308' };
             }
             if (!hasGas && type !== 'source' && type !== 'backup') {
-                return { bg: '#ef4444', font: '#ffffff', border: '#7f1d1d' }; // แดง (ล่ม)
+                return { bg: '#ef4444', font: '#ffffff', border: '#7f1d1d' };
             }
             if (status.includes('สำรอง') || status.includes('กำลังจ่าย')) {
-                return { bg: '#ffedd5', font: '#ea580c', border: '#f97316' }; // ส้ม (สำรอง)
+                return { bg: '#ffedd5', font: '#ea580c', border: '#f97316' };
             }
             if (type === 'backup' && status === 'Standby Ready') {
-                return { bg: '#f1f5f9', font: '#475569', border: '#94a3b8' }; // เทา (เตรียมพร้อม)
+                return { bg: '#f1f5f9', font: '#475569', border: '#94a3b8' };
             }
             return type === 'source' 
-                ? { bg: '#dbeafe', font: '#1e40af', border: '#3b82f6' } // ฟ้า (ต้นทางหลัก)
-                : { bg: '#d1fae5', font: '#065f46', border: '#10b981' }; // เขียว (ทำงานปกติ)
+                ? { bg: '#dbeafe', font: '#1e40af', border: '#3b82f6' } 
+                : { bg: '#d1fae5', font: '#065f46', border: '#10b981' };
         }
 
-        // ฟังก์ชันบันทึกภาพหน้าจอ
+        // ฟังก์ชันบันทึกภาพ (ปุ่ม HTML จะไม่ติดไปในภาพ แต่จะมีคำว่า [เปิด]/[ปิด] ให้แทน)
         function saveImage() {
             const canvas = document.querySelector('#mynetwork canvas');
             if (canvas) {
@@ -290,8 +344,6 @@
                 link.download = `O2-Flow-Architecture-${new Date().toLocaleDateString()}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
-            } else {
-                alert("เกิดข้อผิดพลาด ไม่พบแผนผังสำหรับบันทึกภาพ");
             }
         }
 
