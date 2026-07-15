@@ -3,150 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบผังโครงข่ายการจ่ายออกซิเจนรวม</title>
+    <title>Oxygen Flow Engineering Schematic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
     <style>
         body {
             font-family: 'Prompt', sans-serif;
-            background-color: #f8fafc;
+            background-color: #f1f5f9;
             margin: 0;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
+
         .header {
             text-align: center;
+            width: 100%;
+            max-width: 1280px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
         }
-        /* กำหนดขนาดพื้นที่แสดงผลแผนผัง */
+
+        /* พื้นที่วาดแผนผัง */
         #mynetwork {
-            width: 100%;
-            height: 650px;
-            border: 1px solid #cbd5e1;
+            width: 1280px;
+            height: 720px;
             background-color: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border: 4px solid #334155;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
+
+        /* ปุ่มบันทึกภาพ */
+        .btn-save {
+            background-color: #0f172a;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Prompt', sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        .btn-save:hover { background-color: #334155; }
+
         .legend {
+            margin-top: 20px;
             display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 15px;
-            flex-wrap: wrap;
+            gap: 20px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 14px;
-        }
-        .color-box {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-        }
+
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+        .pipe-sample { width: 40px; height: 8px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <h2>ผังจำลองโครงข่ายการจ่ายออกซิเจนทางการแพทย์</h2>
-        <p>แสดงผลความเชื่อมโยง วาล์วตัดตอน และเส้นทางจ่ายก๊าซไปยังอาคารต่างๆ</p>
+        <div style="text-align: left;">
+            <h1 style="margin: 0; color: #1e293b;">Oxygen Supply Flow Schematic</h1>
+            <p style="margin: 0; color: #64748b;">แผนผังทางวิศวกรรมระบบท่อออกซิเจน (อัปเดตสถานะแบบ Real-time)</p>
+        </div>
+        <button class="btn-save" onclick="saveImage()">📸 บันทึกเป็นรูปภาพ</button>
     </div>
 
     <div id="mynetwork"></div>
 
     <div class="legend">
-        <div class="legend-item"><div class="color-box" style="background:#1E88E5;"></div> แหล่งผลิตหลัก</div>
-        <div class="legend-item"><div class="color-box" style="background:#43A047;"></div> ระบบปกติ/จุดจ่ายหลัก</div>
-        <div class="legend-item"><div class="color-box" style="background:#FDD835; border: 1px solid #333;"></div> วาล์วควบคุม</div>
-        <div class="legend-item"><div class="color-box" style="background:#FB8C00;"></div> ระบบสำรอง</div>
-        <div class="legend-item"><div class="color-box" style="background:#E53935;"></div> จุดที่เกิดปัญหา/ขัดข้อง</div>
+        <div class="legend-item"><div class="pipe-sample" style="background:#2563eb;"></div> ท่อหลัก</div>
+        <div class="legend-item"><div class="pipe-sample" style="background:#f59e0b; border: 1px dashed #d97706;"></div> ท่อสำรอง</div>
+        <div class="legend-item"><div style="width:15px; height:15px; border-radius:50%; background:#facc15; border:1px solid #000;"></div> วาล์วควบคุม</div>
+        <div class="legend-item"><div class="pipe-sample" style="background:#ef4444;"></div> จุดตัดตอน / ขัดข้อง</div>
     </div>
 
     <script type="text/javascript">
-        // นำ URL ของ Web App ที่ได้จาก Google Apps Script มาใส่ที่นี่
+        // ⚠️ นำ URL ของ Web App จาก Google Apps Script มาใส่ในเครื่องหมายคำพูดด้านล่าง
         const API_URL = 'https://script.google.com/macros/s/AKfycbzd52XAP_sZVxGrdU8iipkFyZIcsJgDOysLSfZ3e-s2bZPxoqEOkbL9E-rVLwW3Z7y1/exec';
+        
+        let network = null;
 
-        // ฟังก์ชันกำหนดสีของโหนดตาม Type และ Status
-        function getNodeColor(type, status) {
-            if (status === 'ขัดข้อง' || status === 'ปิด') {
-                return { background: '#E53935', border: '#B71C1C', text: '#ffffff' }; // สีแดงเมื่อปิดหรือเสีย
-            }
+        // ฟังก์ชันกำหนดสีของแต่ละโหนด (เปลี่ยนสีแดงเมื่อปิดหรือขัดข้อง)
+        function getNodeStyle(type, status) {
+            const isDown = (status === 'ปิด' || status === 'ขัดข้อง');
+            if (isDown) return { color: '#ef4444', font: '#ffffff', stroke: '#991b1b' };
+            
             switch(type) {
-                case 'source': return { background: '#1E88E5', border: '#0D47A1', text: '#ffffff' }; // ฟ้า
-                case 'valve': return { background: '#FDD835', border: '#F57F17', text: '#333333' };  // เหลือง
-                case 'backup': return { background: '#FB8C00', border: '#E65100', text: '#ffffff' }; // ส้ม
-                default: return { background: '#43A047', border: '#1B5E20', text: '#ffffff' };       // เขียว (ปกติ)
+                case 'source': return { color: '#2563eb', font: '#ffffff', stroke: '#1e3a8a' }; // แหล่งจ่ายหลัก (ฟ้า)
+                case 'valve': return { color: '#facc15', font: '#000000', stroke: '#854d0e' };   // วาล์ว (เหลือง)
+                case 'backup': return { color: '#f97316', font: '#ffffff', stroke: '#9a3412' }; // สำรอง (ส้ม)
+                default: return { color: '#22c55e', font: '#ffffff', stroke: '#14532d' };       // ทำงานปกติ (เขียว)
             }
         }
 
-        async function drawNetwork() {
+        async function initDiagram() {
             try {
+                // โหลดข้อมูลจาก Google Sheets
                 const response = await fetch(API_URL);
                 const data = await response.json();
-                
-                // แปลงข้อมูล Nodes จาก Google Sheets ให้เข้ากับโครงสร้างของ Vis-network
-                const formattedNodes = data.nodes.map(node => {
-                    const colorConfig = getNodeColor(node.type, node.status);
-                    return {
-                        id: node.id,
-                        label: `${node.label}\n(${node.status})`,
-                        shape: node.type === 'valve' ? 'circle' : 'box', // ถ้าระบุเป็นวาล์วจะแสดงผลเป็นวงกลม
-                        margin: 10,
-                        font: { face: 'Prompt', color: colorConfig.text, size: 14 },
-                        color: {
-                            background: colorConfig.background,
-                            border: colorConfig.border,
-                            highlight: { background: colorConfig.background, border: '#000000' }
-                        }
-                    };
-                });
 
-                // แปลงข้อมูลเส้นเชื่อมโยง (Links)
-                const formattedEdges = data.links.map(link => {
+                // สร้าง Nodes
+                const nodes = new vis.DataSet(data.nodes.map(n => {
+                    const style = getNodeStyle(n.type, n.status);
                     return {
-                        from: link.from,
-                        to: link.to,
-                        arrows: 'to', // แสดงลูกศรทิศทางการไหลของก๊าซ
-                        dashes: link.line_type === 'backup', // ถ้าเป็นท่อสำรองให้แสดงเส้นประ
-                        color: { color: link.line_type === 'backup' ? '#FB8C00' : '#64748B' },
-                        width: 2
+                        id: n.id,
+                        label: ` ${n.label} \n[${n.status}] `,
+                        level: n.level, // กำหนดระดับคอลัมน์จากซ้ายไปขวา (ต้องมีคอลัมน์ level ใน Google Sheets)
+                        shape: n.type === 'valve' ? 'dot' : 'box', // วาล์วเป็นวงกลม นอกนั้นเป็นกล่อง
+                        size: n.type === 'valve' ? 25 : undefined,
+                        font: { face: 'Prompt', color: style.font, size: 16 },
+                        color: { background: style.color, border: style.stroke },
+                        borderWidth: 2
                     };
-                });
+                }));
 
-                // สร้าง Object สำหรับจัดวางโครงข่าย
-                const container = document.getElementById('mynetwork');
-                const networkData = {
-                    nodes: new vis.DataSet(formattedNodes),
-                    edges: new vis.DataSet(formattedEdges)
-                };
-                
-                // การตั้งค่าการจัดวาง (Options)
+                // สร้าง Edges (เส้นท่อ)
+                const edges = new vis.DataSet(data.links.map(l => {
+                    const isBackup = l.line_type === 'backup';
+                    return {
+                        from: l.from,
+                        to: l.to,
+                        width: 12, // ปรับความหนาให้ดูเป็นท่อ
+                        color: { color: isBackup ? '#f59e0b' : '#3b82f6', opacity: 0.8 },
+                        arrows: 'to',
+                        dashes: isBackup, // ท่อสำรองเป็นเส้นประ
+                        smooth: { type: 'cubicBezier', forceDirection: 'horizontal', roundness: 0.5 }
+                    };
+                }));
+
+                // ตั้งค่า Layout ให้จัดเรียงแบบหน้ากระดาน (Hierarchical)
                 const options = {
-                    physics: {
-                        stabilization: true,
-                        barnesHut: {
-                            gravitationalConstant: -2000,
-                            centralGravity: 0.3,
-                            springLength: 150
+                    layout: {
+                        hierarchical: {
+                            direction: 'LR', // ซ้ายไปขวา (Left to Right)
+                            sortMethod: 'directed',
+                            levelSeparation: 300, // ระยะห่างระหว่างคอลัมน์
+                            nodeSpacing: 150      // ระยะห่างระหว่างกล่องในคอลัมน์เดียวกัน
                         }
                     },
-                    layout: {
-                        randomSeed: 2 // ล็อกตำแหน่งเริ่มต้นให้คงที่
+                    physics: false, // ปิดการเด้งไปมา เพื่อให้กล่องอยู่กับที่ตามเลเวล
+                    interaction: { 
+                        hover: true, 
+                        dragNodes: true // อนุญาตให้คลิกลากขยับกล่องได้
                     }
                 };
 
-                // เริ่มวาดแผนผัง
-                new vis.Network(container, networkData, options);
+                // วาดกราฟิกลงใน #mynetwork
+                network = new vis.Network(document.getElementById('mynetwork'), { nodes, edges }, options);
 
             } catch (error) {
-                console.error('ไม่สามารถโหลดข้อมูลโครงข่ายได้:', error);
-                document.getElementById('mynetwork').innerHTML = '<p style="padding:20px; color:red;">ไม่สามารถเชื่อมต่อข้อมูลจาก Google Sheets ได้ กรุณาตรวจสอบการตั้งค่า Deploy</p>';
+                console.error("Error fetching data:", error);
+                document.getElementById('mynetwork').innerHTML = '<div style="padding: 20px; color: red; font-size: 20px; text-align: center; margin-top: 50px;">ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กรุณาตรวจสอบ URL ของ Google Apps Script หรือการตั้งค่า Deployment</div>';
             }
         }
 
-        // เรียกใช้งานฟังก์ชันเมื่อโหลดหน้าจอ
-        window.onload = drawNetwork;
+        // ฟังก์ชันสำหรับบันทึกภาพเมื่อกดปุ่ม
+        function saveImage() {
+            const canvas = document.querySelector('#mynetwork canvas');
+            if (canvas) {
+                const link = document.createElement('a');
+                link.download = `O2-Flow-Diagram-${new Date().toLocaleDateString()}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            } else {
+                alert('ไม่สามารถบันทึกภาพได้เนื่องจากยังโหลดแผนผังไม่เสร็จสิ้น');
+            }
+        }
+
+        // โหลดแผนผังเมื่อเปิดหน้าเว็บ
+        window.onload = initDiagram;
     </script>
 </body>
 </html>
