@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบผังโครงข่ายการจ่ายออกซิเจนรวม</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        /* กำหนดขนาดพื้นที่แสดงผลแผนผัง */
+        #mynetwork {
+            width: 100%;
+            height: 650px;
+            border: 1px solid #cbd5e1;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>ผังจำลองโครงข่ายการจ่ายออกซิเจนทางการแพทย์</h2>
+        <p>แสดงผลความเชื่อมโยง วาล์วตัดตอน และเส้นทางจ่ายก๊าซไปยังอาคารต่างๆ</p>
+    </div>
+
+    <div id="mynetwork"></div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="color-box" style="background:#1E88E5;"></div> แหล่งผลิตหลัก</div>
+        <div class="legend-item"><div class="color-box" style="background:#43A047;"></div> ระบบปกติ/จุดจ่ายหลัก</div>
+        <div class="legend-item"><div class="color-box" style="background:#FDD835; border: 1px solid #333;"></div> วาล์วควบคุม</div>
+        <div class="legend-item"><div class="color-box" style="background:#FB8C00;"></div> ระบบสำรอง</div>
+        <div class="legend-item"><div class="color-box" style="background:#E53935;"></div> จุดที่เกิดปัญหา/ขัดข้อง</div>
+    </div>
+
+    <script type="text/javascript">
+        // นำ URL ของ Web App ที่ได้จาก Google Apps Script มาใส่ที่นี่
+        const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+
+        // ฟังก์ชันกำหนดสีของโหนดตาม Type และ Status
+        function getNodeColor(type, status) {
+            if (status === 'ขัดข้อง' || status === 'ปิด') {
+                return { background: '#E53935', border: '#B71C1C', text: '#ffffff' }; // สีแดงเมื่อปิดหรือเสีย
+            }
+            switch(type) {
+                case 'source': return { background: '#1E88E5', border: '#0D47A1', text: '#ffffff' }; // ฟ้า
+                case 'valve': return { background: '#FDD835', border: '#F57F17', text: '#333333' };  // เหลือง
+                case 'backup': return { background: '#FB8C00', border: '#E65100', text: '#ffffff' }; // ส้ม
+                default: return { background: '#43A047', border: '#1B5E20', text: '#ffffff' };       // เขียว (ปกติ)
+            }
+        }
+
+        async function drawNetwork() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                // แปลงข้อมูล Nodes จาก Google Sheets ให้เข้ากับโครงสร้างของ Vis-network
+                const formattedNodes = data.nodes.map(node => {
+                    const colorConfig = getNodeColor(node.type, node.status);
+                    return {
+                        id: node.id,
+                        label: `${node.label}\n(${node.status})`,
+                        shape: node.type === 'valve' ? 'circle' : 'box', // ถ้าระบุเป็นวาล์วจะแสดงผลเป็นวงกลม
+                        margin: 10,
+                        font: { face: 'Prompt', color: colorConfig.text, size: 14 },
+                        color: {
+                            background: colorConfig.background,
+                            border: colorConfig.border,
+                            highlight: { background: colorConfig.background, border: '#000000' }
+                        }
+                    };
+                });
+
+                // แปลงข้อมูลเส้นเชื่อมโยง (Links)
+                const formattedEdges = data.links.map(link => {
+                    return {
+                        from: link.from,
+                        to: link.to,
+                        arrows: 'to', // แสดงลูกศรทิศทางการไหลของก๊าซ
+                        dashes: link.line_type === 'backup', // ถ้าเป็นท่อสำรองให้แสดงเส้นประ
+                        color: { color: link.line_type === 'backup' ? '#FB8C00' : '#64748B' },
+                        width: 2
+                    };
+                });
+
+                // สร้าง Object สำหรับจัดวางโครงข่าย
+                const container = document.getElementById('mynetwork');
+                const networkData = {
+                    nodes: new vis.DataSet(formattedNodes),
+                    edges: new vis.DataSet(formattedEdges)
+                };
+                
+                // การตั้งค่าการจัดวาง (Options)
+                const options = {
+                    physics: {
+                        stabilization: true,
+                        barnesHut: {
+                            gravitationalConstant: -2000,
+                            centralGravity: 0.3,
+                            springLength: 150
+                        }
+                    },
+                    layout: {
+                        randomSeed: 2 // ล็อกตำแหน่งเริ่มต้นให้คงที่
+                    }
+                };
+
+                // เริ่มวาดแผนผัง
+                new vis.Network(container, networkData, options);
+
+            } catch (error) {
+                console.error('ไม่สามารถโหลดข้อมูลโครงข่ายได้:', error);
+                document.getElementById('mynetwork').innerHTML = '<p style="padding:20px; color:red;">ไม่สามารถเชื่อมต่อข้อมูลจาก Google Sheets ได้ กรุณาตรวจสอบการตั้งค่า Deploy</p>';
+            }
+        }
+
+        // เรียกใช้งานฟังก์ชันเมื่อโหลดหน้าจอ
+        window.onload = drawNetwork;
+    </script>
+</body>
+</html>
